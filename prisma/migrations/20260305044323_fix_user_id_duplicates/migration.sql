@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN "arv" INTEGER;
+ALTER TABLE "Lead" ADD COLUMN "asking" INTEGER;
+ALTER TABLE "Lead" ADD COLUMN "repairs" INTEGER;

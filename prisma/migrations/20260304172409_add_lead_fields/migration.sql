@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN "baths" REAL;
+ALTER TABLE "Lead" ADD COLUMN "bets" INTEGER;
+ALTER TABLE "Lead" ADD COLUMN "sqft" INTEGER;

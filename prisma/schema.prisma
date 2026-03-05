@@ -1,0 +1,198 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email       String @unique
+  clerkUserId String @unique
+
+  leads         Lead[]
+  subscriptions Subscription[]
+  dealSheets    DealSheet[]
+
+  leadLists        LeadList[] // ✅ ADD
+  settings         UserSettings?
+  buyers           Buyer[]
+  smsMessages      SmsMessage[]
+  twilioConnection TwilioConnection?
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // your lead fields (keep/add whatever you need)
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  beds      Int?
+  baths     Int?
+  sqft      Int?
+  lotSqft   Int?
+  yearBuilt Int?
+  arv       Int?
+  repairs   Int?
+  asking    Int?
+
+  status String?
+  notes  String?
+
+  dealSheets DealSheet[]
+  listItems  LeadListItem[]
+
+  @@index([userId])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeSubscriptionId String?
+  status               String?
+  priceId              String?
+  currentPeriodEnd     DateTime?
+
+  @@index([userId])
+}
+
+model DealSheet {
+  id        String   @id @default(cuid())
+  userId    String
+  leadId    String
+  createdAt DateTime @default(now())
+
+  title     String
+  shareSlug String @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([leadId])
+}
+
+model LeadList {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items LeadListItem[]
+
+  @@unique([userId, name])
+}
+
+model LeadListItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  listId String
+  list   LeadList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, leadId])
+  @@index([listId])
+  @@index([leadId])
+}
+
+model UserSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Deal Analyzer defaults
+  defaultDiscountPct    Float @default(0.30) // 30%
+  defaultAssignmentFee  Int   @default(10000)
+  defaultClosingCostPct Float @default(0.02) // 2%
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Buyer {
+  id        String   @id @default(cuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name    String
+  phone   String
+  email   String?
+  markets String?
+  notes   String?
+
+  tags BuyerTag[]
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smsMessages SmsMessage[]
+
+  @@unique([userId, phone])
+  @@index([userId])
+}
+
+model BuyerTag {
+  id      String @id @default(cuid())
+  buyerId String
+  tag     String
+
+  buyer Buyer @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, tag])
+  @@index([buyerId])
+}
+
+model TwilioConnection {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  subaccountSid String   @unique
+  fromNumber    String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SmsMessage {
+  id                String   @id @default(cuid())
+  userId            String
+  buyerId           String?
+  toPhone           String
+  fromPhone         String
+  body              String
+  direction         String
+  status            String?
+  provider          String   @default("twilio")
+  providerMessageId String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buyer Buyer? @relation(fields: [buyerId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([buyerId])
+  @@index([toPhone])
+  @@index([fromPhone])
+}

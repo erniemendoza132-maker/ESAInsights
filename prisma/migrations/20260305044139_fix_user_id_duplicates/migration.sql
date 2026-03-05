@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN "lotSqft" INTEGER;
+ALTER TABLE "Lead" ADD COLUMN "yearBuilt" INTEGER;
