@@ -23,6 +23,10 @@ export async function POST(req: Request) {
     const priceId = body?.priceId;
     const emailRaw = body?.email;
 
+    console.log("Received priceId:", priceId);
+    console.log("Expected starter:", process.env.STRIPE_STARTER_PRICE_ID);
+    console.log("Expected pro:", process.env.STRIPE_PRO_PRICE_ID);
+
     if (!priceId || typeof priceId !== "string") {
       return NextResponse.json({ error: "Missing priceId" }, { status: 400 });
     }
@@ -34,7 +38,7 @@ export async function POST(req: Request) {
     const allowedPriceIds = [
       process.env.STRIPE_STARTER_PRICE_ID,
       process.env.STRIPE_PRO_PRICE_ID,
-    ].filter(Boolean);
+    ].filter(Boolean) as string[];
 
     if (!allowedPriceIds.includes(priceId)) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -57,8 +61,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
+    console.error("Checkout route error:", error);
     return NextResponse.json(
-      { error: error.message || "Server error" },
+      { error: error?.message || "Server error" },
       { status: 500 }
     );
   }
