@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   }
 
   const body = Buffer.from(await req.arrayBuffer());
-
+  console.log("hasSecret", Boolean(webhookSecret), "sigLen", sig.length, "bodyLen", body.length);
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);

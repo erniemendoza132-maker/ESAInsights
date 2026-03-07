@@ -2,98 +2,97 @@
 
 import { useState } from "react";
 
+const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID!;
+const PRO_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID!;
+
 export default function PricingPage() {
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
- async function subscribe(priceId: string) {
-  setError(null);
-  setLoading(priceId);
+  async function subscribe(priceId: string) {
+    setError(null);
+    setLoading(priceId);
 
-  try {
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priceId }),
-    });
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          priceId,
+          email,
+        }),
+      });
 
-    // ✅ If not signed in, send them to Clerk sign-in and come back to pricing
-    if (res.status === 401) {
-      window.location.href = `/sign-in?redirect_url=${encodeURIComponent(
-        "/pricing"
-      )}`;
-      return;
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Checkout failed");
+      }
+
+      if (!data?.url || typeof data.url !== "string") {
+        throw new Error("Missing checkout URL");
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(null);
     }
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Checkout failed");
-    }
-
-    if (!data?.url || typeof data.url !== "string") {
-      throw new Error("Checkout URL missing from server response.");
-    }
-
-    window.location.href = data.url;
-  } catch (e: any) {
-    setError(e?.message || "Something went wrong");
-    setLoading(null);
   }
-}
-
-  const starterPriceId = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID;
-  const proPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-20">
-      <h1 className="text-3xl font-semibold">Pricing</h1>
+    <main className="mx-auto max-w-3xl px-6 py-16">
+      <h1 className="text-3xl font-bold">Choose your plan</h1>
+      <p className="mt-2 text-sm text-gray-600">
+        Purchase first, then we’ll email you your account invitation.
+      </p>
 
-      {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="mt-6">
+        <label className="mb-2 block text-sm font-medium">Your email</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="w-full rounded-lg border px-4 py-3"
+        />
+      </div>
+
+      {error ? (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
-        </div>
-      )}
+        </p>
+      ) : null}
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border p-8">
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border p-6">
           <h2 className="text-xl font-semibold">Starter</h2>
-          <p className="mt-2 text-3xl font-bold">$49/mo</p>
-
+          <p className="mt-2 text-sm text-gray-600">Basic plan</p>
           <button
-            disabled={!starterPriceId || loading === starterPriceId}
-            onClick={() => subscribe(starterPriceId!)}
-            className="mt-6 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+            onClick={() => subscribe(STARTER_PRICE_ID)}
+            disabled={!email || loading === STARTER_PRICE_ID}
+            className="mt-6 w-full rounded-lg bg-black px-4 py-3 text-white disabled:opacity-50"
           >
-            {loading === starterPriceId ? "Redirecting..." : "Get Starter"}
+            {loading === STARTER_PRICE_ID ? "Redirecting..." : "Buy Starter"}
           </button>
-
-          {!starterPriceId && (
-            <p className="mt-3 text-sm text-zinc-600">
-              Missing NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID in .env
-            </p>
-          )}
         </div>
 
-        <div className="rounded-2xl border p-8">
+        <div className="rounded-2xl border p-6">
           <h2 className="text-xl font-semibold">Pro</h2>
-          <p className="mt-2 text-3xl font-bold">$99/mo</p>
-
+          <p className="mt-2 text-sm text-gray-600">Advanced plan</p>
           <button
-            disabled={!proPriceId || loading === proPriceId}
-            onClick={() => subscribe(proPriceId!)}
-            className="mt-6 rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+            onClick={() => subscribe(PRO_PRICE_ID)}
+            disabled={!email || loading === PRO_PRICE_ID}
+            className="mt-6 w-full rounded-lg bg-black px-4 py-3 text-white disabled:opacity-50"
           >
-            {loading === proPriceId ? "Redirecting..." : "Get Pro"}
+            {loading === PRO_PRICE_ID ? "Redirecting..." : "Buy Pro"}
           </button>
-
-          {!proPriceId && (
-            <p className="mt-3 text-sm text-zinc-600">
-              Missing NEXT_PUBLIC_STRIPE_PRO_PRICE_ID in .env
-            </p>
-          )}
         </div>
       </div>
-    </section>
+    </main>
   );
 }
